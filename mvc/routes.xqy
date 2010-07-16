@@ -46,7 +46,9 @@ declare function r:match( $node ) {
                          "?_action=redirect&amp;_url=",
                        xdmp:url-encode(
                          fn:normalize-space( $node/rc:redirect-to ) ) ) )
-                else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
+                else c:kvpair( $k, 
+                       fn:concat( mvc:controller-directory(), 
+                         mvc:controller(), ".xqy", "?_") ) } ;
 
 declare function r:resource($node) {
   let $r     := $node/@name

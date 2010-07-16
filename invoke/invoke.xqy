@@ -30,11 +30,9 @@ import module
   namespace mvc = "http://ns.dscape.org/2010/dxc/mvc"
   at "/lib/dxc/mvc/mvc.xqy";
 
-declare function local:redirect() { mvc:redirect-response( ) } ;
+declare function local:redirect() { mvc:redirect-response() } ;
 
-declare function local:default() { mvc:redirect-to-controller() } ;
+try {
+  xdmp:apply( xdmp:function( xs:QName( mvc:function( mvc:action() ) ) ) )
+} catch ( $e ) {  mvc:raise-404( $e ) }
 
-let $f := if (mvc:action() = "redirect" )
-          then mvc:function( "redirect" )
-          else mvc:function( "default" )
-  return xdmp:apply( xdmp:function( xs:QName( $f ) ) )

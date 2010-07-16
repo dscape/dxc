@@ -62,13 +62,9 @@ declare function mvc:redirect-response() {
   let $url := mvc:get-input( "url" )
   return if ( $url )
          then mvc:redirect-response( xdmp:url-decode( $url ) )
-         else xdmp:invoke( mvc:path-404() ) } ;
-
-declare function mvc:redirect-to-controller() {
-  xdmp:invoke( fn:concat( mvc:controller-directory(), 
-    mvc:controller(), ".xqy") ) } ;
+         else mvc:raise-404( () ) } ;
 
 declare function mvc:redirect-response( $url ) {
   xdmp:redirect-response( $ url ) } ;
 
-declare function mvc:render-error( $e ) { $e };
+declare function mvc:raise-404( $e ) { $e };
