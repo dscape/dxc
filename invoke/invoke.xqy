@@ -1,5 +1,10 @@
 (:
- : HTTP Functions
+ : Invoking Script
+ :
+ : Three ways to operate:
+ :  - redirect-to sends you to a new page
+ :  - if the function doesn't exist than we want to call that function
+ :    in a /:resource/:action/:id fashion
  :
  : Copyright (c) 2010 Nuno Job [nunojob.com].
  : All Rights Reserved.
@@ -19,8 +24,17 @@
  : The use of the Apache License does not indicate that this project is
  : affiliated with the Apache Software Foundation.
  :)
-xquery version "1.0-ml" ;
+xquery version "1.0-ml";
 
-module  namespace h  = "http://ns.dscape.org/2010/dxc/http" ;
+import module
+  namespace mvc = "http://ns.dscape.org/2010/dxc/mvc"
+  at "/lib/dxc/mvc/mvc.xqy";
 
-declare function h:foo() { "bar" };
+declare function local:redirect() { mvc:redirect-response( ) } ;
+
+declare function local:default() { mvc:redirect-to-controller() } ;
+
+let $f := if (mvc:action() = "redirect" )
+          then mvc:function( "redirect" )
+          else mvc:function( "default" )
+  return xdmp:apply( xdmp:function( xs:QName( $f ) ) )
