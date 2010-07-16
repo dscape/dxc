@@ -71,4 +71,6 @@ declare function mvc:redirect-to-controller() {
 declare function mvc:redirect-response( $url ) {
   xdmp:redirect-response( $ url ) } ;
 
-declare function mvc:raise-404( $e ) { $e };
+declare function mvc:raise-404( $e ) { 
+  let $message := ($e//*:message) [1]
+  xdmp:set-response-code(404, $message ), $message };
