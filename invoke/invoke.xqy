@@ -32,7 +32,9 @@ import module
 
 declare function local:redirect() { mvc:redirect-response() } ;
 
-try {
-  xdmp:apply( xdmp:function( xs:QName( mvc:function( mvc:action() ) ) ) )
-} catch ( $e ) {  mvc:raise-404( $e ) }
+declare function local:default() { mvc:redirect-to-controller() } ;
 
+let $f := if (mvc:action() = "redirect" )
+          then mvc:function( "redirect" )
+          else mvc:function( "default" )
+  return xdmp:apply( xdmp:function( xs:QName( $f ) ) )
