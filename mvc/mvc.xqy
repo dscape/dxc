@@ -23,19 +23,32 @@ xquery version "1.0-ml" ;
 
 module  namespace mvc  = "http://ns.dscape.org/2010/dxc/mvc" ;
 
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory := "/ctr/" ;
 declare variable $dxc-directory        := "/lib/dxc/" ;
-declare variable $invokable-path       := 
+declare variable $pub-directory        := "/pub/" ;
+declare variable $invoke-path          := 
   fn:concat( $dxc-directory, "invoke/invoke.xqy" ) ;
-declare variable $redirect-404         := "/pub/404.xqy" ;
-declare variable $verbs             := ( "GET", "POST", "PUT", "DELETE", "HEAD")
-  ;
+declare variable $path-404             := 
+  fn:concat( $pub-directory, "404.xqy" ) ;
+declare variable $supported-verbs      :=
+  ( "GET", "POST", "PUT", "DELETE", "HEAD") ;
 
-declare function mvc:controller-directory() { $controller-directory };
-declare function mvc:dxc-directory(){ $dxc-directory };
-declare function mvc:invokable-path(){ $invokable-path };
-declare function mvc:redirect-404(){ $redirect-404 };
-declare function mvc:verbs(){ $verbs };
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
+declare function mvc:controller-directory() { $controller-directory } ;
+declare function mvc:dxc-directory()        { $dxc-directory } ;
+declare function mvc:pub-directory()        { $pub-directory } ;
+declare function mvc:invoke-path()          { $invoke-path } ;
+declare function mvc:path-404()             { $path-404 } ;
+declare function mvc:supported-verbs()      { $supported-verbs } ;
+
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ http accessors ~~ :)
+declare function mvc:action() { mvc:get-input('action') } ;
+declare function mvc:id() { mvc:get-input('id') } ;
+declare function mvc:controller() { mvc:get-input('controller') } ;
+
+declare function mvc:get-input( $name ) {
+  xdmp:get-request-field( fn:concat('_', $name) ) };
 
 declare function mvc:function() {
   mvc:function(
@@ -44,13 +57,6 @@ declare function mvc:function() {
 
 declare function mvc:function( $name ) {
   fn:concat( "local:", $name ) } ;
-
-declare function mvc:action() { mvc:get-input('action') } ;
-declare function mvc:id() { mvc:get-input('id') } ;
-declare function mvc:controller() { mvc:get-input('controller') } ;
-
-declare function mvc:get-input( $name ) {
-  xdmp:get-request-field( fn:concat('_', $name) ) };
 
 declare function mvc:redirect-response() {
   let $url := mvc:get-input( "url" )

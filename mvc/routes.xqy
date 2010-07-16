@@ -42,15 +42,15 @@ declare function r:match( $node ) {
                   return c:kvpair( $k, $file )
            else if ( $node/rc:redirect-to ) 
                 then c:kvpair( $k,
-                       fn:concat( mvc:invokable-path(), 
+                       fn:concat( mvc:invoke-path(), 
                          "?_action=redirect&amp;_url=",
                        xdmp:url-encode(
                          fn:normalize-space( $node/rc:redirect-to ) ) ) )
-                else c:kvpair( $k, fn:concat( mvc:invokable-path(), "?_" ) ) } ;
+                else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
 
 declare function r:resource($node) {
   let $r     := $node/@name
-    for $verb in mvc:verbs()
+    for $verb in mvc:supported-verbs()
       let $k := fn:concat( $verb, " /", $r, "/:id" )
       let $v := fn:concat( mvc:controller-directory(), $r, ".xqy?_action=", $verb )
     return c:kvpair( $k, $v ),
@@ -89,27 +89,25 @@ declare function r:selected-route( $routes-cfg ) {
 let $route  := xdmp:get-request-path()
   let $verb := xdmp:get-request-method()
   let $req := fn:string-join( ( $verb, $route), " ")
-  return 
-    if ( fn:matches($req,  "GET /(img|css|js)/.*") )
-    then fn:concat("/pub", $route)
-    else
-      let $cache := r:routes( $routes-cfg )
-        let $selected := $cache //c:kvp [ fn:matches( $req, fn:concat( 
-          r:generate-regular-expression(@key), "$" ) ) ] [1]
-        return 
-          if ($selected)
-          then let $route     := $selected/@key
-                 let $file    := $selected/@value
-                 let $regexp  := r:generate-regular-expression( $route )
-                 let $labels  := r:extract-labels( $route )
-                 let $matches := fn:analyze-string( $req, $regexp ) 
-                   //s:match/s:group/fn:string(.)
-                 let $params := 
-                   if ($matches) 
-                   then fn:concat( "&amp;",
-                     fn:string-join( for $match at $p in $matches
-                       return fn:concat("_", $labels[$p], "=",
-                       xdmp:url-encode($match)) , "&amp;") )
-                   else ""
-                 return fn:concat($file, $params)
-             else mvc:redirect-404() } ;
+  return
+    let $cache := r:routes( $routes-cfg )
+      let $selected := $cache //c:kvp [ fn:matches( $req, fn:concat( 
+        r:generate-regular-expression(@key), "$" ) ) ] [1]
+      return 
+        if ($selected)
+        then let $route     := $selected/@key
+               let $file    := $selected/@value
+               let $regexp  := r:generate-regular-expression( $route )
+               let $labels  := r:extract-labels( $route )
+               let $matches := fn:analyze-string( $req, $regexp ) 
+                 //s:match/s:group/fn:string(.)
+               let $params := 
+                 if ($matches) 
+                 then fn:concat( "&amp;",
+                   fn:string-join( for $match at $p in $matches
+                     return fn:concat("_", $labels[$p], "=",
+                     xdmp:url-encode($match)) , "&amp;") )
+                 else ""
+               return fn:concat($file, $params)
+           else let $pub := fn:replace(mvc:pub-directory(), "/$", "")
+                  return    fn:concat($pub, $route) } ;
