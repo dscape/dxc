@@ -28,18 +28,29 @@ declare namespace s  = "http://www.w3.org/2009/xpath-functions/analyze-string" ;
 
 import module
   namespace mvc = "http://ns.dscape.org/2010/dxc/mvc"
-  at "/lib/dxc/mvc/mvc.xqy";
+  at "mvc.xqy";
 import module
   namespace c = "http://ns.dscape.org/2010/dxc/cache"
   at "../cache/cache.xqy";
+
+declare function r:resource($node) {
+  let $r     := $node/@name
+    for $verb in mvc:supported-verbs()
+      let $k := fn:concat( $verb, " /", $r, "/:id" )
+      let $v := mvc:controller-action-path( $r, $verb )
+    return c:kvpair( $k, $v ),
+  let $r         := $node/@name
+    for $action in fn:data( $node/r:include/@action )
+      let $k := fn:concat("GET /", $r,"/:id/", $action)
+      let $v := mvc:controller-action-path( $r, $action )
+    return c:kvpair( $k, $v ) } ;
 
 declare function r:match( $node ) { 
   let $k := fn:concat( "GET ", $node/@path )
     return if ( $node/rc:to )
            then let $to := fn:tokenize( fn:normalize-space( $node/rc:to ), "#" )
-                  let $file := fn:concat( mvc:controller-directory(), $to[1], 
-                                          ".xqy?_action=", $to[2] )
-                  return c:kvpair( $k, $file )
+                  let $v := mvc:controller-action-path( $to [1], $to [2] )
+                  return c:kvpair( $k, $v )
            else if ( $node/rc:redirect-to ) 
                 then c:kvpair( $k,
                        fn:concat( mvc:invoke-path(), 
@@ -48,23 +59,9 @@ declare function r:match( $node ) {
                          fn:normalize-space( $node/rc:redirect-to ) ) ) )
                 else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
 
-declare function r:resource($node) {
-  let $r     := $node/@name
-    for $verb in mvc:supported-verbs()
-      let $k := fn:concat( $verb, " /", $r, "/:id" )
-      let $v := fn:concat( mvc:controller-directory(), $r, ".xqy?_action=", $verb )
-    return c:kvpair( $k, $v ),
-  let $r         := $node/@name
-    let $actions :=  fn:data( $node/r:include/@action )
-    for $action in $actions
-      let $k := fn:concat("GET /", $r,"/:id/", $action)
-      let $v := fn:concat( mvc:controller-directory(), $r, ".xqy?_action=", $action )
-    return c:kvpair( $k, $v ) } ;
-
 declare function r:root($node) {
   let $ra   := fn:tokenize ( fn:normalize-space( fn:string($node) ), "#" ) 
-    let $file := fn:concat( mvc:controller-directory(), $ra [1],
-                            ".xqy?_action=", $ra [2] )
+    let $file := mvc:controller-action-path( $ra [1], $ra [2] )
     return c:kvpair("GET /", $file) } ;
 
 declare function r:transform( $node ) {
@@ -97,6 +94,7 @@ let $route  := xdmp:get-request-path()
         if ($selected)
         then let $route     := $selected/@key
                let $file    := $selected/@value
+               let $args    := fn:tokenize(xdmp:get-request-url(), "\?")[2]
                let $regexp  := r:generate-regular-expression( $route )
                let $labels  := r:extract-labels( $route )
                let $matches := fn:analyze-string( $req, $regexp ) 
@@ -108,6 +106,7 @@ let $route  := xdmp:get-request-path()
                      return fn:concat("_", $labels[$p], "=",
                      xdmp:url-encode($match)) , "&amp;") )
                  else ""
-               return fn:concat($file, $params)
+               return fn:concat($file, $params, 
+                 if ($args) then fn:concat("&amp;", $args) else "")
            else let $pub := fn:replace(mvc:pub-directory(), "/$", "")
                   return    fn:concat($pub, $route) } ;

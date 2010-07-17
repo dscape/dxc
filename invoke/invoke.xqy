@@ -28,13 +28,15 @@ xquery version "1.0-ml";
 
 import module
   namespace mvc = "http://ns.dscape.org/2010/dxc/mvc"
-  at "/lib/dxc/mvc/mvc.xqy";
+  at "../mvc/mvc.xqy";
 
 declare function local:redirect() { mvc:redirect-response() } ;
 
 declare function local:default() { mvc:redirect-to-controller() } ;
 
-let $f := if (mvc:action() = "redirect" )
-          then mvc:function( "redirect" )
-          else mvc:function( "default" )
-  return xdmp:apply( xdmp:function( xs:QName( $f ) ) )
+try          { 
+  let $f := if (mvc:action() = "redirect" )
+            then mvc:function( "redirect" )
+            else mvc:function( "default" )
+    return xdmp:apply( xdmp:function( xs:QName( $f ) ) ) } 
+catch ( $e ) {  mvc:raise-404( $e ) }

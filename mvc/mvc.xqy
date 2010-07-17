@@ -23,6 +23,10 @@ xquery version "1.0-ml" ;
 
 module  namespace mvc  = "http://ns.dscape.org/2010/dxc/mvc" ;
 
+import module
+  namespace gen = "http://ns.dscape.org/2010/dxc/func/gen-tree"
+  at "../func/gen-tree.xqy";
+
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory := "/ctr/" ;
 declare variable $dxc-directory        := "/lib/dxc/" ;
@@ -41,6 +45,9 @@ declare function mvc:pub-directory()        { $pub-directory } ;
 declare function mvc:invoke-path()          { $invoke-path } ;
 declare function mvc:path-404()             { $path-404 } ;
 declare function mvc:supported-verbs()      { $supported-verbs } ;
+declare function mvc:controller-action-path( $controller, $action ) {
+  fn:concat( mvc:controller-directory(), 
+    $controller, ".xqy?_action=", $action ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ http accessors ~~ :)
 declare function mvc:action() { mvc:get-input('action') } ;
@@ -50,6 +57,20 @@ declare function mvc:controller() { mvc:get-input('controller') } ;
 declare function mvc:get-input( $name ) {
   xdmp:get-request-field( fn:concat('_', $name) ) };
 
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ redirects ~~ :)
+declare function mvc:redirect-to-controller() {
+  xdmp:invoke( fn:concat( mvc:controller-directory(), 
+    mvc:controller(), ".xqy") ) } ;
+
+declare function mvc:redirect-response() {
+  let $url := mvc:get-input( "url" )
+  return if ( $url )
+         then mvc:redirect-response( xdmp:url-decode( $url ) )
+         else mvc:raise-404( () ) } ;
+
+declare function mvc:redirect-response( $url ) {
+  xdmp:redirect-response( $ url ) } ;
+
 declare function mvc:function() {
   mvc:function(
     fn:lower-case(
@@ -58,19 +79,14 @@ declare function mvc:function() {
 declare function mvc:function( $name ) {
   fn:concat( "local:", $name ) } ;
 
-declare function mvc:redirect-response() {
-  let $url := mvc:get-input( "url" )
-  return if ( $url )
-         then mvc:redirect-response( xdmp:url-decode( $url ) )
-         else mvc:raise-404( () ) } ;
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ forms ~~ :)
+declare function mvc:tree-from-request-fields() {
+  let $keys   := xdmp:get-request-field-names() [fn:starts-with(., "/")]
+  let $values := for $k in $keys return xdmp:get-request-field($k)
+  let $_ := xdmp:log(($keys, $values))
+  return gen:process-fields( $keys, $values ) } ;
 
-declare function mvc:redirect-to-controller() {
-  xdmp:invoke( fn:concat( mvc:controller-directory(), 
-    mvc:controller(), ".xqy") ) } ;
-
-declare function mvc:redirect-response( $url ) {
-  xdmp:redirect-response( $ url ) } ;
-
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 
-  let $message := ($e//*:message) [1]
-  xdmp:set-response-code(404, $message ), $message };
+  let $message := fn:string(($e//*:message) [1])
+  return (xdmp:set-response-code(404, "Not Found" ), $message) };
