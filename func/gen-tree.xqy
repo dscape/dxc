@@ -26,7 +26,7 @@ module namespace gen = "http://ns.dscape.org/2010/dxc/func/gen-tree";
 import module namespace xqh = "http://ns.dscape.org/2010/dxc/func/xqhof"
   at "xqhof.xqy" ;
 import module namespace mem = "http://xqdev.com/in-mem-update"
-  at "/MarkLogic/appservices/utils/in-mem-update.xqy" ;
+  at "../ext/in-mem-update.xqy" ;
 
 declare variable $redo as xs:string* := (); (: hack, should be in fold :)
 
