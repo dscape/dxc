@@ -28,23 +28,28 @@ import module
   at "../func/gen-tree.xqy";
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
-declare variable $controller-directory := "/ctr/" ;
-declare variable $dxc-directory        := "/lib/dxc/" ;
-declare variable $pub-directory        := "/pub/" ;
-declare variable $invoke-path          := 
+declare variable $controller-directory    := "/ctr/" ;
+declare variable $dxc-directory           := "/lib/dxc/" ;
+declare variable $pub-directory           := "/pub/" ;
+declare variable $invoke-path             := 
   fn:concat( $dxc-directory, "invoke/invoke.xqy" ) ;
-declare variable $path-404             := 
+declare variable $path-404                := 
   fn:concat( $pub-directory, "404.xqy" ) ;
-declare variable $supported-verbs      :=
+declare variable $supported-verbs         :=
   ( "GET", "POST", "PUT", "DELETE", "HEAD") ;
+declare variable $supported-content-types :=
+  ( "application/xhtml+xml", "application/xml", "text/plain" ) ;
+declare variable $default-content-type    := "application/xml" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
-declare function mvc:controller-directory() { $controller-directory } ;
-declare function mvc:dxc-directory()        { $dxc-directory } ;
-declare function mvc:pub-directory()        { $pub-directory } ;
-declare function mvc:invoke-path()          { $invoke-path } ;
-declare function mvc:path-404()             { $path-404 } ;
-declare function mvc:supported-verbs()      { $supported-verbs } ;
+declare function mvc:controller-directory()    { $controller-directory } ;
+declare function mvc:dxc-directory()           { $dxc-directory } ;
+declare function mvc:pub-directory()           { $pub-directory } ;
+declare function mvc:invoke-path()             { $invoke-path } ;
+declare function mvc:path-404()                { $path-404 } ;
+declare function mvc:supported-verbs()         { $supported-verbs } ;
+declare function mvc:supported-content-types() { $supported-content-types } ;
+declare function mvc:default-content-type()    { $default-content-type } ;
 declare function mvc:controller-action-path( $controller, $action ) {
   fn:concat( mvc:controller-directory(), 
     $controller, ".xqy?_action=", $action ) };
