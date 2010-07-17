@@ -26,9 +26,14 @@ module  namespace mvc  = "http://ns.dscape.org/2010/dxc/mvc" ;
 import module
   namespace gen = "http://ns.dscape.org/2010/dxc/func/gen-tree"
   at "../func/gen-tree.xqy";
+import module
+  namespace h = "http://ns.dscape.org/2010/dxc/http"
+  at "../http/http.xqy";
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
+declare variable $view-directory          := "/view/" ;
+declare variable $template-directory      := "/layouts/" ;
 declare variable $dxc-directory           := "/lib/dxc/" ;
 declare variable $pub-directory           := "/pub/" ;
 declare variable $invoke-path             := 
@@ -39,10 +44,12 @@ declare variable $supported-verbs         :=
   ( "GET", "POST", "PUT", "DELETE", "HEAD") ;
 declare variable $supported-content-types :=
   ( "application/xhtml+xml", "application/xml", "text/plain" ) ;
-declare variable $default-content-type    := "application/xml" ;
+declare variable $default-content-type    := "application/xhtml+xml" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
 declare function mvc:controller-directory()    { $controller-directory } ;
+declare function mvc:template-directory()      { $template-directory } ;
+declare function mvc:view-directory()          { $view-directory } ;
 declare function mvc:dxc-directory()           { $dxc-directory } ;
 declare function mvc:pub-directory()           { $pub-directory } ;
 declare function mvc:invoke-path()             { $invoke-path } ;
@@ -53,6 +60,22 @@ declare function mvc:default-content-type()    { $default-content-type } ;
 declare function mvc:controller-action-path( $controller, $action ) {
   fn:concat( mvc:controller-directory(), 
     $controller, ".xqy?_action=", $action ) };
+declare function mvc:view-path( $controller, $view, $format ){
+  s:q( "$1$2/$3.$4.xqy", 
+       ( mvc:view-directory(), $controller, $view, $format ) ) };
+declare function mvc:template-path( $template, $format ){
+  s:q( "$1$2.$4", 
+       ( mvc:template-directory(), $controller, $view, $format ) ) };
+
+declare function mvc:negotiate-content-type() {
+  h:negotiate-content-type( xdmp:get-request-header( "Accept" ), 
+    mvc:supported-content-types(), mvc:default-content-type() ) } ;
+
+declare function mvc:extension-for-content-type( $content-type ) {
+  if ( $content-type = "text/plain" )
+  then "txt"
+  else if ( $content-type = "application/xhtml+xml")
+  then "html" else "xml" };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ http accessors ~~ :)
 declare function mvc:action() { mvc:get-input('action') } ;
@@ -90,6 +113,26 @@ declare function mvc:tree-from-request-fields() {
   let $values := for $k in $keys return xdmp:get-request-field($k)
   let $_ := xdmp:log(($keys, $values))
   return gen:process-fields( $keys, $values ) } ;
+
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
+declare function mvc:render( $resource, 
+    $view, $params ) {
+  mvc:render( $resource, $view, $params, 200, 'OK', 'default' ) } ;
+
+declare function mvc:render( $resource, 
+    $view, $params, $http-code, $http-msg, $template ) {
+  let $content-type    := mvc:negotiate-content-type()
+    let $ext           := mvc:extension-for-content-type( $content-type )
+    let $template      := if($template) 
+                          then fn:lower-case( $template )
+                          else 'default'
+    let $view-path     := mvc:view-path( $resource, $view, $ext )
+    let $template-path := mvc:template-path( $template, $ext )
+    let $_ := xdmp:set-response-content-type( $content-type )
+    let $_ := xdmp:set-response-code( $http-code, $http-msg )
+    return xdmp:invoke( $template-path, (xs:QName( "sections" ), $sections, 
+       xs:QName( "view-path" ),   $view-path ), 
+       xs:QName( "view-params" ), $params ) ) } ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 
