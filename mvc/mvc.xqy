@@ -29,6 +29,9 @@ import module
 import module
   namespace h = "http://ns.dscape.org/2010/dxc/http"
   at "../http/http.xqy";
+import module
+  namespace s = "http://ns.dscape.org/2010/dxc/string"
+  at "../string/string.xqy";
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
@@ -64,8 +67,8 @@ declare function mvc:view-path( $controller, $view, $format ){
   s:q( "$1$2/$3.$4.xqy", 
        ( mvc:view-directory(), $controller, $view, $format ) ) };
 declare function mvc:template-path( $template, $format ){
-  s:q( "$1$2.$4", 
-       ( mvc:template-directory(), $controller, $view, $format ) ) };
+  s:q( "$1$2.$4.xqy", 
+       ( mvc:template-directory(), $template, $format ) ) };
 
 declare function mvc:negotiate-content-type() {
   h:negotiate-content-type( xdmp:get-request-header( "Accept" ), 
@@ -115,24 +118,25 @@ declare function mvc:tree-from-request-fields() {
   return gen:process-fields( $keys, $values ) } ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
-declare function mvc:render( $resource, 
-    $view, $params ) {
-  mvc:render( $resource, $view, $params, 200, 'OK', 'default' ) } ;
+declare function mvc:render( $resource, $view, $args ) {
+  mvc:render( $resource, $view, $args, 200, 'OK', 'default' ) } ;
 
 declare function mvc:render( $resource, 
-    $view, $params, $http-code, $http-msg, $template ) {
+    $view, $args, $http-code, $http-msg, $template ) {
   let $content-type    := mvc:negotiate-content-type()
+    let $_ := xdmp:set-response-content-type( $content-type )
+    let $_ := xdmp:set-response-code( $http-code, $http-msg )
     let $ext           := mvc:extension-for-content-type( $content-type )
     let $template      := if($template) 
                           then fn:lower-case( $template )
                           else 'default'
     let $view-path     := mvc:view-path( $resource, $view, $ext )
     let $template-path := mvc:template-path( $template, $ext )
-    let $_ := xdmp:set-response-content-type( $content-type )
-    let $_ := xdmp:set-response-code( $http-code, $http-msg )
-    return xdmp:invoke( $template-path, (xs:QName( "sections" ), $sections, 
-       xs:QName( "view-path" ),   $view-path ), 
-       xs:QName( "view-params" ), $params ) ) } ;
+    let $sections      := mvc:view-map( $view-path, $args )
+    return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) } ;
+
+declare function mvc:view-map( $view-path, $args ) { 
+  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) } ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 

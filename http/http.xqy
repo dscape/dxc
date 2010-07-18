@@ -23,22 +23,9 @@ xquery version "1.0-ml" ;
 
 module  namespace h  = "http://ns.dscape.org/2010/dxc/http" ;
 
-declare function h:foo() { "bar" };
-
+(: uses a default content type, no 406 errors :)
 declare function h:negotiate-content-type( $accept, 
   $supported-content-types, $default-content-type ) {
-(:
-  notes: uses a default content type, so doesnt return 406 errors.
-         design choice.
-
-  sample invoke:
-
-  let $accept := "application/gif; foo=bar; q=0.5, text/*;foo=bar, application/xml; q=0.8;foo=d, */*"
-let $supported-content-types :=
-  ( "application/xhtml+xml", "application/xml", "text/plain" ) 
-let $default-content-type := "application/xml"
-return local:negotiate-content-type( $accept, $supported-content-types, $default-content-type )
-:)
   let $ordered-accept-types :=
     for $media-range in fn:tokenize($accept, "\s*,\s*")
          let $l := fn:tokenize($media-range, "\s*;\s*")
