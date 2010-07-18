@@ -35,7 +35,6 @@ declare function h:negotiate-content-type( $accept,
                          let $q-or-ext := fn:tokenize($p, "\s*=\s*") 
                          where $q-or-ext [1] = "q"
                          return fn:number($q-or-ext[2]), 1.0) [1]
-         let $_ := xdmp:log(fn:concat($type, ":", $quality))
          order by $quality descending
          return $type
   return (for $sat in $ordered-accept-types

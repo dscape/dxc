@@ -27,15 +27,21 @@ import module
   namespace gen = "http://ns.dscape.org/2010/dxc/func/gen-tree"
   at "../func/gen-tree.xqy";
 import module
-  namespace h = "http://ns.dscape.org/2010/dxc/http"
+  namespace h   = "http://ns.dscape.org/2010/dxc/http"
   at "../http/http.xqy";
 import module
-  namespace s = "http://ns.dscape.org/2010/dxc/string"
+  namespace s   = "http://ns.dscape.org/2010/dxc/string"
   at "../string/string.xqy";
+import module
+  namespace seq = "http://ns.dscape.org/2010/dxc/sequence"
+  at "../sequence/sequence.xqy";
+import module
+  namespace date = "http://ns.dscape.org/2010/dxc/date"
+  at "../date/date.xqy";
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
-declare variable $view-directory          := "/view/" ;
+declare variable $view-directory          := "/views/" ;
 declare variable $template-directory      := "/layouts/" ;
 declare variable $dxc-directory           := "/lib/dxc/" ;
 declare variable $pub-directory           := "/pub/" ;
@@ -46,8 +52,8 @@ declare variable $path-404                :=
 declare variable $supported-verbs         :=
   ( "GET", "POST", "PUT", "DELETE", "HEAD") ;
 declare variable $supported-content-types :=
-  ( "application/xhtml+xml", "application/xml", "text/plain" ) ;
-declare variable $default-content-type    := "application/xhtml+xml" ;
+  ( "text/plain", "text/html", "application/xml" ) ; (: order matters :)
+declare variable $default-content-type    := "text/plain" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
 declare function mvc:controller-directory()    { $controller-directory } ;
@@ -64,12 +70,13 @@ declare function mvc:controller-action-path( $controller, $action ) {
   fn:concat( mvc:controller-directory(), 
     $controller, ".xqy?_action=", $action ) };
 declare function mvc:view-path( $controller, $view, $format ){
-  s:q( "$1$2/$3.$4.xqy", 
+  mvc:q( "$1$2/$3.$4.xqy", 
        ( mvc:view-directory(), $controller, $view, $format ) ) };
 declare function mvc:template-path( $template, $format ){
-  s:q( "$1$2.$4.xqy", 
+  mvc:q( "$1$2.$3.xqy", 
        ( mvc:template-directory(), $template, $format ) ) };
 
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ content-type ~~ :)
 declare function mvc:negotiate-content-type() {
   h:negotiate-content-type( xdmp:get-request-header( "Accept" ), 
     mvc:supported-content-types(), mvc:default-content-type() ) } ;
@@ -77,7 +84,7 @@ declare function mvc:negotiate-content-type() {
 declare function mvc:extension-for-content-type( $content-type ) {
   if ( $content-type = "text/plain" )
   then "txt"
-  else if ( $content-type = "application/xhtml+xml")
+  else if ( $content-type = "text/html")
   then "html" else "xml" };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ http accessors ~~ :)
@@ -102,20 +109,28 @@ declare function mvc:redirect-response() {
 declare function mvc:redirect-response( $url ) {
   xdmp:redirect-response( $ url ) } ;
 
+
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ aux ~~ :)
 declare function mvc:function() {
   mvc:function(
     fn:lower-case(
       ( mvc:get-input('action'), xdmp:get-request-method() ) [ . != "" ] [1]))};
 
 declare function mvc:function( $name ) {
-  fn:concat( "local:", $name ) } ;
+  xdmp:function( xs:QName( fn:concat( "local:", $name ) ) ) } ;
 
-(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ forms ~~ :)
 declare function mvc:tree-from-request-fields() {
   let $keys   := xdmp:get-request-field-names() [fn:starts-with(., "/")]
   let $values := for $k in $keys return xdmp:get-request-field($k)
-  let $_ := xdmp:log(($keys, $values))
   return gen:process-fields( $keys, $values ) } ;
+
+declare function mvc:view-map( $view-path, $args ) { 
+  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) } ;
+
+declare function mvc:sequence-to-map( $sequence ) {
+ seq:sequence-to-map( $sequence ) } ;
+
+declare function mvc:q( $str, $opts ) { s:q( $str,$opts ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
 declare function mvc:render( $resource, $view, $args ) {
@@ -126,6 +141,7 @@ declare function mvc:render( $resource,
   let $content-type    := mvc:negotiate-content-type()
     let $_ := xdmp:set-response-content-type( $content-type )
     let $_ := xdmp:set-response-code( $http-code, $http-msg )
+    let $_ := xdmp:add-response-header( "Date", date:now() )
     let $ext           := mvc:extension-for-content-type( $content-type )
     let $template      := if($template) 
                           then fn:lower-case( $template )
@@ -134,9 +150,6 @@ declare function mvc:render( $resource,
     let $template-path := mvc:template-path( $template, $ext )
     let $sections      := mvc:view-map( $view-path, $args )
     return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) } ;
-
-declare function mvc:view-map( $view-path, $args ) { 
-  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) } ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 
