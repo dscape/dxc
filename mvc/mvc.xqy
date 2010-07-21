@@ -147,6 +147,7 @@ declare function mvc:sequence-to-map( $sequence ) {
  seq:sequence-to-map( $sequence ) } ;
 
 declare function mvc:q( $str, $opts ) { s:q( $str,$opts ) };
+declare function mvc:document-get( $path ) { u:document-get($path) } ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
 declare function mvc:render( $resource, $view, $args ) {
