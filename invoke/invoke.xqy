@@ -50,5 +50,5 @@ try          {
                  else if( $action = "file-from-db" )
                       then mvc:function( "database" )
                       else mvc:function( "default" )
-    return xdmp:apply( xdmp:function( xs:QName( $f ) ) ) } 
-catch ( $e ) {  mvc:raise-404( $e ) }
+    return xdmp:apply( $f ) }
+catch ( $e ) {  mvc:raise-501( $e ) }

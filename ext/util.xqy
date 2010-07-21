@@ -22,8 +22,11 @@
 xquery version "1.0-ml" ;
 
 module namespace util = "http://ns.dscape.org/2010/dxc/ext/util" ;
+declare namespace s  = "http://www.w3.org/2009/xpath-functions/analyze-string";
 
 declare function util:document-get($path) {
   xdmp:document-get(
-    if(fn:starts-with( $path, "/" ) ) then $path
-    else fn:concat( xdmp:modules-root(), $path ) ) } ;
+    fn:concat( xdmp:modules-root(), $path ) ) } ;
+
+declare function util:local-functions($xquery) {
+  fn:analyze-string($xquery, "(local:)(\w+)")/s:match/s:group[@nr=2]/text() } ;

@@ -128,7 +128,20 @@ declare function mvc:tree-from-request-fields() {
   return gen:process-fields( $keys, $values ) } ;
 
 declare function mvc:view-map( $view-path, $args ) { 
-  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) } ;
+  let $view            := u:document-get($view-path)
+  let $local-functions := <fs> 
+    { for $ f in u:local-functions($view) return <f>{fn:string($f)}</f> }</fs>
+  let $xquery := fn:concat(
+      'xquery version "1.0-ml" ;
+       import module namespace mvc = "http://ns.dscape.org/2010/dxc/mvc" 
+         at "/lib/dxc/mvc/mvc.xqy"; declare variable $args external ;
+       declare variable $functions external ; 
+       ',$view,' mvc:sequence-to-map( for $f in $functions//f/text()
+       return ( $f, xdmp:apply( mvc:function( $f ) ) ) )')
+  return xdmp:eval( $xquery,
+      (xs:QName("args"), $args, xs:QName("functions"), $local-functions))
+(:  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) :)
+} ;
 
 declare function mvc:sequence-to-map( $sequence ) {
  seq:sequence-to-map( $sequence ) } ;
@@ -156,5 +169,11 @@ declare function mvc:render( $resource,
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 
+  mvc:raise-error( $e, 404, "Not Found" ) };
+declare function mvc:raise-501( $e ) { 
+  mvc:raise-error( $e, 501, "Application Error" ) };
+
+declare function mvc:raise-error( $e, $code, $http-msg ) { 
   let $message := fn:string(($e//*:message) [1])
-  return (xdmp:set-response-code(404, "Not Found" ), $message) };
+  let $_ := xdmp:log(xdmp:quote($e))
+  return (xdmp:set-response-code($code, "Not Found" ), $message) };
