@@ -24,4 +24,6 @@ xquery version "1.0-ml" ;
 module namespace util = "http://ns.dscape.org/2010/dxc/ext/util" ;
 
 declare function util:document-get($path) {
-  xdmp:document-get(fn:concat(xdmp:modules-root(), $path)) } ;
+  xdmp:document-get(
+    if(fn:starts-with( $path, "/" ) ) then $path
+    else fn:concat( xdmp:modules-root(), $path ) ) } ;
