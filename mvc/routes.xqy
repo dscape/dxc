@@ -82,7 +82,7 @@ declare function r:transform( $node ) {
     default                     return () } ;
 
 declare function r:generate-regular-expression($node) {
-  fn:replace( $node , ":([\w|\-|_]+)", "([\\w|\\-|_]+)" ) } ;
+  fn:concat(fn:replace( $node , ":([\w|\-|_]+)", "([\\w|\\-|_]+)" ), "(/)?") };
 
 declare function r:extract-labels($node) {
   fn:analyze-string($node, ":([\w|\-|_]+)") //s:match/s:group/fn:string(.) } ;

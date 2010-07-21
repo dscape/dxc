@@ -34,9 +34,21 @@ declare function local:redirect() { mvc:redirect-response() } ;
 
 declare function local:default() { mvc:redirect-to-controller() } ;
 
+declare function local:file-from-db(){
+  let $uri := xdmp:get-request-field( "_uri" )
+    let $format := xdmp:uri-format( $uri )
+    let $mimetype := xdmp:uri-content-type( $uri )
+    let $doc := fn:doc($uri) (: improve for multiple dbs will be needed :)
+    return if ( $doc )
+           then ( xdmp:set-response-content-type( $mimetype ), $doc )
+           else () };
+
 try          { 
-  let $f := if (mvc:action() = "redirect" )
-            then mvc:function( "redirect" )
-            else mvc:function( "default" )
+  let $action := mvc:action()
+  let $f      := if ($action = "redirect" )
+                 then mvc:function( "redirect" )
+                 else if( $action = "file-from-db" )
+                      then mvc:function( "database" )
+                      else mvc:function( "default" )
     return xdmp:apply( xdmp:function( xs:QName( $f ) ) ) } 
 catch ( $e ) {  mvc:raise-404( $e ) }

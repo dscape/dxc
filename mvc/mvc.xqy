@@ -41,8 +41,8 @@ import module
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
-declare variable $view-directory          := "/views/" ;
-declare variable $template-directory      := "/layouts/" ;
+declare variable $view-directory          := "/view/" ;
+declare variable $template-directory      := "/layout/" ;
 declare variable $dxc-directory           := "/lib/dxc/" ;
 declare variable $pub-directory           := "/pub/" ;
 declare variable $invoke-path             := 
