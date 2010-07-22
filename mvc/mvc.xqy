@@ -97,6 +97,9 @@ declare function mvc:controller() { mvc:get-input('controller') } ;
 
 declare function mvc:get-input( $name ) {
   xdmp:get-request-field( fn:concat('_', $name) ) };
+declare function mvc:get-field( $name ) { xdmp:get-request-field( $name ) };
+declare function mvc:get-field( $name, $default ) { 
+  ( mvc:get-field( $name ), $default ) [1] };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ redirects ~~ :)
 declare function mvc:redirect-to-controller() {
@@ -112,6 +115,11 @@ declare function mvc:redirect-response() {
 declare function mvc:redirect-response( $url ) {
   xdmp:redirect-response( $ url ) } ;
 
+(:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ headers ~~ :)
+declare function mvc:must-revalidate-cache() { h:must-revalidate-cache() } ;
+declare function mvc:no-cache() { h:no-cache() } ;
+declare function mvc:etag ( $id ) { h:etag( $id ) };
+declare function mvc:weak-etag ( $id ) { h:weak-etag( $id ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ aux ~~ :)
 declare function mvc:function() {
@@ -150,6 +158,11 @@ declare function mvc:sequence-to-map( $sequence ) {
 declare function mvc:q( $str, $opts ) { s:q( $str,$opts ) };
 declare function mvc:document-get( $path ) { u:document-get($path) } ;
 
+declare function mvc:log( $msg ) { mvc:log( $msg, "info" ) };
+declare function mvc:log($msg, $level) {
+  let $l := for $e in $msg return mvc:q("DXC-MVC => $1", ($e))
+  return xdmp:log( $l, $level ) };
+
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
 declare function mvc:render( $resource, $view, $args ) {
   mvc:render( $resource, $view, $args, 200, 'OK', 'default' ) } ;
@@ -170,6 +183,10 @@ declare function mvc:render( $resource,
     return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
+declare function mvc:raise-http-error( $e ) {
+  (: fix later should be 404 if function undef, else 501 :)
+  mvc:raise-404( $e ) };
+
 declare function mvc:raise-404( $e ) { 
   mvc:raise-error( $e, 404, "Not Found" ) };
 declare function mvc:raise-501( $e ) { 

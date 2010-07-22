@@ -42,3 +42,24 @@ declare function h:negotiate-content-type( $accept,
            where fn:matches($sct, fn:replace($sat, "\*", ".*"))
            return $sct) [1]
            return $match, $default-content-type) [1] } ;
+
+declare function h:must-revalidate-cache() {
+  xdmp:add-response-header('Cache-Control', 'must-revalidate') } ;
+
+declare function h:no-cache() {
+  xdmp:add-response-header('Cache-Control', 'must-revalidate, no-cache'), 
+  xdmp:add-response-header('Pragma', 'no-cache'), 
+  xdmp:add-response-header('Expires', 'Fri, 01 Jan 1990 00:00:00 GMT'),
+  h:etag(xdmp:request()) } ;
+
+declare function h:etag ( $id ) {
+  h:etag( $id, fn:true() ) };
+
+declare function h:weak-etag ( $id ) {
+  h:etag( $id, fn:false() ) };
+
+declare function h:etag( $id, $strong ) {
+  let $str   := fn:concat( '"', xdmp:md5(fn:string($id)), '"' )
+  let $etag := if ($strong) then $str else fn:concat("W/", $str)
+  return xdmp:add-response-header('ETag', $etag) } ;
+
