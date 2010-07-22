@@ -129,19 +129,20 @@ declare function mvc:tree-from-request-fields() {
 
 declare function mvc:view-map( $view-path, $args ) { 
   let $view            := u:document-get($view-path)
-  let $local-functions := <fs> 
-    { for $ f in u:local-functions($view) return <f>{fn:string($f)}</f> }</fs>
-  let $xquery := fn:concat(
+  let $args_           := u:from-seq( $args )
+  let $functions_      := u:from-seq( u:local-functions( $view ) )  
+  let $xquery          := fn:concat(
       'xquery version "1.0-ml" ;
        import module namespace mvc = "http://ns.dscape.org/2010/dxc/mvc" 
-         at "/lib/dxc/mvc/mvc.xqy"; declare variable $args external ;
-       declare variable $functions external ; 
-       ',$view,' mvc:sequence-to-map( for $f in $functions//f/text()
-       return ( $f, xdmp:apply( mvc:function( $f ) ) ) )')
-  return xdmp:eval( $xquery,
-      (xs:QName("args"), $args, xs:QName("functions"), $local-functions))
-(:  xdmp:invoke( $view-path,  (xs:QName("args"), $args ) ) :)
-} ;
+       at "/lib/dxc/mvc/mvc.xqy"; import module namespace u = 
+       "http://ns.dscape.org/2010/dxc/ext/util" at "/lib/dxc/ext/util.xqy"; 
+       declare variable $args_ external; declare variable $functions_ external;
+       declare variable $args := u:to-seq( $args_ ); declare variable 
+       $functions := u:to-seq( $functions_ ); ',$view,' mvc:sequence-to-map( 
+       for $f in $functions return ( $f, 
+       u:from-seq( xdmp:apply( mvc:function( $f ) ) ) ) )'
+    ) return xdmp:eval( $xquery,
+      (xs:QName("args_"), $args_, xs:QName("functions_"), $functions_))} ;
 
 declare function mvc:sequence-to-map( $sequence ) {
  seq:sequence-to-map( $sequence ) } ;
@@ -166,7 +167,7 @@ declare function mvc:render( $resource,
     let $view-path     := mvc:view-path( $resource, $view, $ext )
     let $template-path := mvc:template-path( $template, $ext )
     let $sections      := mvc:view-map( $view-path, $args )
-    return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) } ;
+    return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
 declare function mvc:raise-404( $e ) { 

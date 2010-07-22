@@ -30,3 +30,12 @@ declare function util:document-get($path) {
 
 declare function util:local-functions($xquery) {
   fn:analyze-string($xquery, "(local:)(\w+)")/s:match/s:group[@nr=2]/text() } ;
+
+declare function util:from-seq( $seq ) {
+ <rowset> { for $e in $seq return <row>{$e}</row> } </rowset> } ;
+
+declare function util:to-seq( $rowset ) {
+  for $node in $rowset//row/(text()|node())
+  return typeswitch ( $node )
+    case text()     return fn:string( $node )
+    default         return $node } ;

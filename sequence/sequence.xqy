@@ -23,9 +23,13 @@ xquery version "1.0-ml" ;
 
 module namespace seq = "http://ns.dscape.org/2010/dxc/sequence" ;
 
+import module
+  namespace u = "http://ns.dscape.org/2010/dxc/ext/util"
+  at "../ext/util.xqy" ;
+
 declare function seq:sequence-to-map( $l ) {
     let $map := map:map()
     let $_ := for $p in ( 1 to fn:count( $l ) ) [ . mod 2 ne 0 ]
-                return map:put( $map, $l [ $p ], $l [ $p+1 ] )
+                return map:put( $map, $l [ $p ], u:to-seq( $l[ $p+1 ] ) )
     return $map } ;
 
