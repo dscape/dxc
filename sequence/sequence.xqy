@@ -23,13 +23,18 @@ xquery version "1.0-ml" ;
 
 module namespace seq = "http://ns.dscape.org/2010/dxc/sequence" ;
 
-import module
-  namespace u = "http://ns.dscape.org/2010/dxc/ext/util"
-  at "../ext/util.xqy" ;
-
 declare function seq:sequence-to-map( $l ) {
     let $map := map:map()
     let $_ := for $p in ( 1 to fn:count( $l ) ) [ . mod 2 ne 0 ]
-                return map:put( $map, $l [ $p ], u:to-seq( $l[ $p+1 ] ) )
+                return map:put( $map, $l [ $p ], seq:to-seq( $l[ $p+1 ] ) )
     return $map } ;
+
+declare function seq:from-seq( $seq ) {
+ <rowset> { for $e in $seq return <row>{$e}</row> } </rowset> } ;
+
+declare function seq:to-seq( $rowset ) {
+  for $node in $rowset//row/(text()|node())
+  return typeswitch ( $node )
+    case text()     return fn:string( $node )
+    default         return $node } ;
 

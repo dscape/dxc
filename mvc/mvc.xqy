@@ -129,18 +129,18 @@ declare function mvc:tree-from-request-fields() {
 
 declare function mvc:view-map( $view-path, $args ) { 
   let $view            := u:document-get($view-path)
-  let $args_           := u:from-seq( $args )
-  let $functions_      := u:from-seq( u:local-functions( $view ) )  
+  let $args_           := seq:from-seq( $args )
+  let $functions_      := seq:from-seq( u:local-functions( $view ) )  
   let $xquery          := fn:concat(
-      'xquery version "1.0-ml" ;
-       import module namespace mvc = "http://ns.dscape.org/2010/dxc/mvc" 
-       at "/lib/dxc/mvc/mvc.xqy"; import module namespace u = 
-       "http://ns.dscape.org/2010/dxc/ext/util" at "/lib/dxc/ext/util.xqy"; 
-       declare variable $args_ external; declare variable $functions_ external;
-       declare variable $args := u:to-seq( $args_ ); declare variable 
-       $functions := u:to-seq( $functions_ ); ',$view,' mvc:sequence-to-map( 
-       for $f in $functions return ( $f, 
-       u:from-seq( xdmp:apply( mvc:function( $f ) ) ) ) )'
+      'xquery version "1.0-ml" ; import module namespace mvc = 
+       "http://ns.dscape.org/2010/dxc/mvc" at "/lib/dxc/mvc/mvc.xqy"; import 
+       module namespace seq = "http://ns.dscape.org/2010/dxc/sequence" at 
+       "/lib/dxc/sequence/sequence.xqy"; declare variable $args_ external; 
+       declare variable $functions_ external; declare variable $args := 
+       seq:to-seq( $args_ ); declare variable $functions := 
+       seq:to-seq( $functions_ ); ',$view,' mvc:sequence-to-map( for $f in 
+       $functions return ( $f, seq:from-seq( xdmp:apply( 
+       mvc:function( $f ) ) ) ) )'
     ) return xdmp:eval( $xquery,
       (xs:QName("args_"), $args_, xs:QName("functions_"), $functions_))} ;
 
