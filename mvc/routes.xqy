@@ -33,6 +33,31 @@ import module
   namespace c = "http://ns.dscape.org/2010/dxc/cache"
   at "../cache/cache.xqy";
 
+declare function r:match( $node, $method ) { 
+  let $k := fn:concat( $method, " ", $node/@path )
+    return if ( $node/rc:to )
+           then let $to := r:tokenize-by-pound( $node/rc:to )
+                  let $v := mvc:controller-action-path( $to [1], $to [2] )
+                  return c:kvpair( $k, $v )
+           else if ( $node/rc:redirect-to ) 
+                then c:kvpair( $k,
+                       fn:concat( mvc:invoke-path(), 
+                         "?_action=redirect&amp;_url=",
+                       xdmp:url-encode(
+                         fn:normalize-space( $node/rc:redirect-to ) ) ) )
+                else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
+
+declare function r:get( $node )    { r:match($node, "GET") } ;
+declare function r:head( $node )   { r:match($node, "HEAD") } ;
+declare function r:put( $node )    { r:match($node, "PUT") } ;
+declare function r:post( $node )   { r:match($node, "POST") } ;
+declare function r:delete( $node ) { r:match($node, "DELETE") } ;
+
+declare function r:root($node) {
+  let $ra   := r:tokenize-by-pound( $node ) 
+    let $file := mvc:controller-action-path( $ra [1], $ra [2] )
+    return c:kvpair("GET /", $file) } ;
+
 declare function r:resource($node) {
   let $r     := $node/@name
     for $verb in mvc:supported-verbs()
@@ -45,38 +70,16 @@ declare function r:resource($node) {
       let $v := mvc:controller-action-path( $r, $action )
     return c:kvpair( $k, $v ) } ;
 
-declare function r:match( $node ) { 
-  let $k := fn:concat( "GET ", $node/@path )
-    return if ( $node/rc:to )
-           then let $to := fn:tokenize( fn:normalize-space( $node/rc:to ), "#" )
-                  let $v := mvc:controller-action-path( $to [1], $to [2] )
-                  return c:kvpair( $k, $v )
-           else if ( $node/rc:redirect-to ) 
-                then c:kvpair( $k,
-                       fn:concat( mvc:invoke-path(), 
-                         "?_action=redirect&amp;_url=",
-                       xdmp:url-encode(
-                         fn:normalize-space( $node/rc:redirect-to ) ) ) )
-                else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
-
-declare function r:head( $node ) { 
-  let $k := fn:concat( "HEAD ", $node/@path )
-    let $to := fn:tokenize( fn:normalize-space( $node ), "#" )
-    let $v := mvc:controller-action-path( $to [1], $to [2] )
-      return c:kvpair( $k, $v ) } ;
-
-declare function r:root($node) {
-  let $ra   := fn:tokenize ( fn:normalize-space( fn:string($node) ), "#" ) 
-    let $file := mvc:controller-action-path( $ra [1], $ra [2] )
-    return c:kvpair("GET /", $file) } ;
+declare function r:tokenize-by-pound( $node ) {
+  fn:tokenize ( fn:normalize-space( fn:string( $node ) ), "#" ) } ;
 
 declare function r:transform( $node ) {
   typeswitch ( $node )
-    case element( rc:match )    return r:match( $node )
+    case element( rc:match )    return r:get( $node )
     case element( rc:head )     return r:head( $node )
-    case element( rc:delete )   return ()
-    case element( rc:post )     return ()
-    case element( rc:put )      return ()
+    case element( rc:delete )   return r:delete( $node )
+    case element( rc:post )     return r:post( $node )
+    case element( rc:put )      return r:put( $node )
     case element( rc:resource ) return r:resource( $node )
     case element( rc:root )     return r:root( $node )
     default                     return () } ;
