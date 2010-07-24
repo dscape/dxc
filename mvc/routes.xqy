@@ -93,17 +93,17 @@ declare function r:extract-labels($node) {
 declare function r:extract-values($req, $regexp){
   fn:analyze-string( $req, $regexp ) //s:match/s:group/fn:string(.) } ;
 
-declare function r:routes( $routes-cfg ) { 
-  <c:cache> { let $r := document { $routes-cfg }
+declare function r:routes( $cfg ) { 
+  <c:cache> { let $r := document { $cfg }
       return for $e in $r/rc:routes/* return r:transform($e) }
   </c:cache> } ;
 
-declare function r:selected-route( $routes-cfg ) {
+declare function r:selected-route( $routes ) {
 let $route  := xdmp:get-request-path()
   let $verb := xdmp:get-request-method()
   let $req := fn:string-join( ( $verb, $route), " ")
   return
-    let $cache := r:routes( $routes-cfg )
+    let $cache := $routes
       let $selected := $cache //c:kvp [ fn:matches( $req, fn:concat( 
         r:generate-regular-expression(@key), "$" ) ) ] [1]
       return 
