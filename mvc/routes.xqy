@@ -94,7 +94,7 @@ declare function r:extract-values($req, $regexp){
   fn:analyze-string( $req, $regexp ) //s:match/s:group/fn:string(.) } ;
 
 declare function r:routes( $cfg ) { 
-  <c:cache> { let $r := document { $cfg }
+  <c:cache> { let $r := document { mvc:document-get( $cfg ) }
       return for $e in $r/rc:routes/* return r:transform($e) }
   </c:cache> } ;
 
