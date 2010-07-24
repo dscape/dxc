@@ -1,1 +1,1 @@
-"This isn't working yet"
+xdmp:invoke("/README")

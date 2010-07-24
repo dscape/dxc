@@ -90,6 +90,9 @@ declare function r:generate-regular-expression($node) {
 declare function r:extract-labels($node) {
   fn:analyze-string($node, ":([\w|\-|_]+)") //s:match/s:group/fn:string(.) } ;
 
+declare function r:extract-values($req, $regexp){
+  fn:analyze-string( $req, $regexp ) //s:match/s:group/fn:string(.) } ;
+
 declare function r:routes( $routes-cfg ) { 
   <c:cache> { let $r := document { $routes-cfg }
       return for $e in $r/rc:routes/* return r:transform($e) }
@@ -110,8 +113,7 @@ let $route  := xdmp:get-request-path()
                let $args    := fn:tokenize(xdmp:get-request-url(), "\?")[2]
                let $regexp  := r:generate-regular-expression( $route )
                let $labels  := r:extract-labels( $route )
-               let $matches := fn:analyze-string( $req, $regexp ) 
-                 //s:match/s:group/fn:string(.)
+               let $matches := r:extract-values( $req, $regexp )
                let $params := 
                  if ($matches) 
                  then fn:concat( "&amp;",
