@@ -40,7 +40,7 @@ import module
   at "../date/date.xqy";
 import module
   namespace u = "http://ns.dscape.org/2010/dxc/ext/util"
-  at "/lib/dxc/ext/util.xqy" ;
+  at "../ext/util.xqy" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
@@ -69,9 +69,7 @@ declare function mvc:path-404()                { $path-404 } ;
 declare function mvc:supported-verbs()         { $supported-verbs } ;
 declare function mvc:supported-content-types() { $supported-content-types } ;
 declare function mvc:default-content-type()    { $default-content-type } ;
-declare function mvc:controller-action-path( $controller, $action ) {
-  fn:concat( mvc:controller-directory(), 
-    $controller, ".xqy?_action=", $action ) };
+
 declare function mvc:view-path( $controller, $view, $format ){
   mvc:q( "$1$2/$3.$4.xqy", 
        ( mvc:view-directory(), $controller, $view, $format ) ) };

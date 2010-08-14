@@ -29,6 +29,11 @@ declare function seq:sequence-to-map( $l ) {
                 return map:put( $map, $l [ $p ], seq:to-seq( $l[ $p+1 ] ) )
     return $map } ;
 
+declare function seq:sequence-to-uri( $l ) {
+  fn:string-join(
+    for $p in ( 1 to fn:count( $l ) ) [ . mod 2 ne 0 ]
+      return fn:concat( "_", $l [ $p ], "=" $l[ $p+1 ] ), "&amp;" ) } ;
+
 declare function seq:from-seq( $seq ) {
  <rowset> { for $e in $seq return <row>{$e}</row> } </rowset> } ;
 

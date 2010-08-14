@@ -32,19 +32,31 @@ import module
 import module
   namespace c = "http://ns.dscape.org/2010/dxc/cache"
   at "../cache/cache.xqy";
+import module 
+  namespace r = "http://ns.dscape.org/2010/dxc/mvc/sequence" 
+  at "/lib/dxc/sequence/sequence.xqy" ;
+
+declare function r:controller-action-path( $controller, $action ) {
+  fn:concat( mvc:controller-directory(), 
+    $controller, ".xqy?_action=", $action ) };
+
+declare function r:invoke-params-path( $params ) {
+  fn:concat( mvc:invoke-path(), "?_", seq:sequence-to-uri($params) ) };
+(: will not work because &amp will be missing in first elem. must fix!!! )
+(: unterminated comment is to force a failure :)
 
 declare function r:match( $node, $method ) { 
   let $k := fn:concat( $method, " ", $node/@path )
     return if ( $node/rc:to )
            then let $to := r:tokenize-by-pound( $node/rc:to )
-                  let $v := mvc:controller-action-path( $to [1], $to [2] )
+                  let $v := r:controller-action-path( $to [1], $to [2] )
                   return c:kvpair( $k, $v )
            else if ( $node/rc:redirect-to ) 
                 then c:kvpair( $k,
-                       fn:concat( mvc:invoke-path(), 
-                         "?_action=redirect&amp;_url=",
-                       xdmp:url-encode(
-                         fn:normalize-space( $node/rc:redirect-to ) ) ) )
+                       r:invoke-params-path( 
+                         ( "action", "redirect", "url",
+                           xdmp:url-encode(
+                             fn:normalize-space( $node/rc:redirect-to ) ) )
                 else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
 
 declare function r:get( $node )    { r:match($node, "GET") } ;
@@ -55,19 +67,19 @@ declare function r:delete( $node ) { r:match($node, "DELETE") } ;
 
 declare function r:root($node) {
   let $ra   := r:tokenize-by-pound( $node ) 
-    let $file := mvc:controller-action-path( $ra [1], $ra [2] )
+    let $file := r:controller-action-path( $ra [1], $ra [2] )
     return c:kvpair("GET /", $file) } ;
 
 declare function r:resource($node) {
   let $r     := $node/@name
     for $verb in mvc:supported-verbs()
       let $k := fn:concat( $verb, " /", $r, "/:id" )
-      let $v := mvc:controller-action-path( $r, $verb )
+      let $v := r:controller-action-path( $r, $verb )
     return c:kvpair( $k, $v ),
   let $r         := $node/@name
     for $action in fn:data( $node/r:include/@action )
       let $k := fn:concat("GET /", $r,"/:id/", $action)
-      let $v := mvc:controller-action-path( $r, $action )
+      let $v := r:controller-action-path( $r, $action )
     return c:kvpair( $k, $v ) } ;
 
 declare function r:tokenize-by-pound( $node ) {
