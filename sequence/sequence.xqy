@@ -38,3 +38,10 @@ declare function seq:to-seq( $rowset ) {
     case text()     return fn:string( $node )
     default         return $node } ;
 
+declare function seq:shuffle( $l ) {
+  let $n := fn:count( $l )
+  for $i in (1 to $n) order by xdmp:random() return $l[$i] } ;
+
+declare function seq:shuffle_with_index( $l ) {
+  let $n := fn:count( $l )
+  for $i in (1 to $n) order by xdmp:random() return seq:from-seq(($i,$l[$i])) };
