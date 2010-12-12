@@ -40,7 +40,7 @@ import module
   at "../date/date.xqy";
 import module
   namespace u = "http://ns.dscape.org/2010/dxc/ext/util"
-  at "/lib/dxc/ext/util.xqy" ;
+  at "../ext/util.xqy" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
