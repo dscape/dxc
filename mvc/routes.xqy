@@ -59,24 +59,29 @@ declare function r:match( $node ) {
                          fn:normalize-space( $node/rc:redirect-to ) ) ) )
                 else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
 
-declare function r:head( $node ) { 
-  let $k := fn:concat( "HEAD ", $node/@path )
-    let $to := fn:tokenize( fn:normalize-space( $node ), "#" )
-    let $v := mvc:controller-action-path( $to [1], $to [2] )
-      return c:kvpair( $k, $v ) } ;
-
 declare function r:root($node) {
   let $ra   := fn:tokenize ( fn:normalize-space( fn:string($node) ), "#" ) 
     let $file := mvc:controller-action-path( $ra [1], $ra [2] )
     return c:kvpair("GET /", $file) } ;
 
+declare function r:head( $node)   { r:verb( $node, 'HEAD'   ) };
+declare function r:put( $node)    { r:verb( $node, 'PUT'    ) };
+declare function r:post( $node)   { r:verb( $node, 'POST'   ) };
+declare function r:delete( $node) { r:verb( $node, 'DELETE' ) };
+
+declare function r:verb( $node, $verb ) { 
+  let $k := fn:concat( $verb, ' ', $node/@path )
+    let $to := fn:tokenize( fn:normalize-space( $node ), "#" )
+    let $v := mvc:controller-action-path( $to [1], $to [2] )
+      return c:kvpair( $k, $v ) } ;
+
 declare function r:transform( $node ) {
   typeswitch ( $node )
     case element( rc:match )    return r:match( $node )
     case element( rc:head )     return r:head( $node )
-    case element( rc:delete )   return ()
-    case element( rc:post )     return ()
-    case element( rc:put )      return ()
+    case element( rc:delete )   return r:delete( $node )
+    case element( rc:post )     return r:post( $node )
+    case element( rc:put )      return r:put( $node )
     case element( rc:resource ) return r:resource( $node )
     case element( rc:root )     return r:root( $node )
     default                     return () } ;

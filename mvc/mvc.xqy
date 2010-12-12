@@ -40,10 +40,11 @@ import module
   at "../date/date.xqy";
 import module
   namespace u = "http://ns.dscape.org/2010/dxc/ext/util"
-  at "../ext/util.xqy" ;
+  at "/lib/dxc/ext/util.xqy" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ vars ~~ :)
 declare variable $controller-directory    := "/ctr/" ;
+declare variable $model-directory         := "/mdl/" ;
 declare variable $view-directory          := "/view/" ;
 declare variable $template-directory      := "/layout/" ;
 declare variable $dxc-directory           := "/lib/dxc/" ;
@@ -60,6 +61,7 @@ declare variable $default-content-type    := "text/plain" ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
 declare function mvc:controller-directory()    { $controller-directory } ;
+declare function mvc:model-directory()         { $controller-directory } ;
 declare function mvc:template-directory()      { $template-directory } ;
 declare function mvc:view-directory()          { $view-directory } ;
 declare function mvc:dxc-directory()           { $dxc-directory } ;
@@ -71,7 +73,7 @@ declare function mvc:supported-content-types() { $supported-content-types } ;
 declare function mvc:default-content-type()    { $default-content-type } ;
 declare function mvc:controller-action-path( $controller, $action ) {
   fn:concat( mvc:controller-directory(), 
-    $controller, ".xqy?_action=", $action ) };
+    fn:replace($controller, ':', ''), ".xqy?_action=", $action ) };
 declare function mvc:view-path( $controller, $view, $format ){
   mvc:q( "$1$2/$3.$4.xqy", 
        ( mvc:view-directory(), $controller, $view, $format ) ) };
