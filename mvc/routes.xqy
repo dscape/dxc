@@ -87,7 +87,7 @@ declare function r:transform( $node ) {
     default                     return () } ;
 
 declare function r:generate-regular-expression($node) {
-  let $t := fn:replace( fn:normalize-space($node), "/:id", "(/[\\w|\\-|_]+)?" )
+  let $t := fn:replace( fn:normalize-space($node), "/:id", "/?([\\w|\\-|_]+)?" )
   return fn:concat(fn:replace( $t , ":([\w|\-|_]+)", "([\\w|\\-|_]+)" ), 
     if(fn:tokenize($t, " ")[2]="/") then "" else "(/)?") };
 
