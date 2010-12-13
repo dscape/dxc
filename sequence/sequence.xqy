@@ -50,7 +50,7 @@ declare function seq:partition-range($list-size, $nr-partitions) {
   let $m    := if ($nr-partitions > $list-size) 
                then $list-size 
                else $nr-partitions,
-      $step := ceiling( $list-size div $m )
+      $step := fn:ceiling( $list-size div $m )
   return for $i in (1 to $m)    
     let $s := xs:integer( 1 + ( ( $i - 1 ) * $step ) )
     let $f := xs:integer( $s + $step - 1 )
