@@ -46,10 +46,7 @@ declare function seq:shuffle_with_index( $l ) {
   let $n := fn:count( $l )
   for $i in (1 to $n) order by xdmp:random() return seq:from-seq(($i,$l[$i])) };
 
-(: better approach as allows you to use xdmp:estimate
- : Sample call: local:partition-range( 10, 3 )
- :)
-declare function local:partition-range($list-size, $nr-partitions) {
+declare function seq:partition-range($list-size, $nr-partitions) {
   let $m    := if ($nr-partitions > $list-size) 
                then $list-size 
                else $nr-partitions,
