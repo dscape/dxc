@@ -21,7 +21,9 @@
  :)
 xquery version "1.0-ml" ;
 
-module  namespace mvc  = "http://ns.dscape.org/2010/dxc/mvc" ;
+module  namespace mvc   = "http://ns.dscape.org/2010/dxc/mvc" ;
+
+declare namespace error = "http://marklogic.com/xdmp/error" ;
 
 import module
   namespace gen = "http://ns.dscape.org/2010/dxc/func/gen-tree"
@@ -58,6 +60,7 @@ declare variable $supported-verbs         :=
 declare variable $supported-content-types :=
   ( "text/plain", "text/html", "application/xml" ) ; (: order matters :)
 declare variable $default-content-type    := "text/plain" ;
+declare variable $default-error-id        := 'dxc_internal' ;
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ accessors ~~ :)
 declare function mvc:controller-directory()    { $controller-directory } ;
@@ -99,9 +102,9 @@ declare function mvc:controller() { mvc:get-input('controller') } ;
 
 declare function mvc:get-input( $name ) {
   xdmp:get-request-field( fn:concat('_', $name) ) };
-declare function mvc:get-field( $name ) { xdmp:get-request-field( $name ) };
+declare function mvc:get-field( $name ) { mvc:get-field( $name, "") };
 declare function mvc:get-field( $name, $default ) { 
-  ( mvc:get-field( $name ), $default ) [1] };
+  xdmp:get-request-field( $name, $default ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ redirects ~~ :)
 declare function mvc:redirect-to-controller() {
@@ -112,7 +115,7 @@ declare function mvc:redirect-response() {
   let $url := mvc:get-input( "url" )
   return if ( $url )
          then mvc:redirect-response( xdmp:url-decode( $url ) )
-         else mvc:raise-404( () ) } ;
+         else mvc:raise-error( 'No URL was specified', 404, "Not Found" ) } ;
 
 declare function mvc:redirect-response( $url ) {
   xdmp:redirect-response( $ url ) } ;
@@ -138,21 +141,29 @@ declare function mvc:tree-from-request-fields() {
   return gen:process-fields( $keys, $values ) } ;
 
 declare function mvc:view-map( $view-path, $args ) { 
-  let $view            := u:document-get($view-path)
-  let $args_           := seq:from-seq( $args )
-  let $functions_      := seq:from-seq( u:local-functions( $view ) )  
-  let $xquery          := fn:concat(
-      'xquery version "1.0-ml" ; import module namespace mvc = 
-       "http://ns.dscape.org/2010/dxc/mvc" at "/lib/dxc/mvc/mvc.xqy"; import 
-       module namespace seq = "http://ns.dscape.org/2010/dxc/sequence" at 
-       "/lib/dxc/sequence/sequence.xqy"; declare variable $args_ external; 
-       declare variable $functions_ external; declare variable $args := 
-       seq:to-seq( $args_ ); declare variable $functions := 
-       seq:to-seq( $functions_ ); ',$view,' mvc:sequence-to-map( for $f in 
-       $functions return ( $f, seq:from-seq( xdmp:apply( 
-       mvc:function( $f ) ) ) ) )'
-    ) return xdmp:eval( $xquery,
-      (xs:QName("args_"), $args_, xs:QName("functions_"), $functions_))} ;
+    let $view            := mvc:document-get($view-path)
+    let $args_           := seq:from-seq( $args )
+    let $functions_      := seq:from-seq( u:local-functions( $view ) )  
+    let $xquery          := fn:concat(
+        'xquery version "1.0-ml" ; import module namespace mvc = 
+         "http://ns.dscape.org/2010/dxc/mvc" at "/lib/dxc/mvc/mvc.xqy"; import 
+         module namespace seq = "http://ns.dscape.org/2010/dxc/sequence" at 
+         "/lib/dxc/sequence/sequence.xqy"; declare variable $args_ external; 
+         declare variable $functions_ external; declare variable $args := 
+         seq:to-seq( $args_ ); declare variable $functions := 
+         seq:to-seq( $functions_ ); ',$view,' mvc:sequence-to-map( for $f in 
+         $functions return ( $f, seq:from-seq( xdmp:apply( 
+         mvc:function( $f ) ) ) ) )'
+      ) return xdmp:eval( $xquery,
+        (xs:QName("args_"), $args_, xs:QName("functions_"), $functions_)) } ;
+
+declare function mvc:best-available-view() {
+  mvc:raise-error( 'View not supported yet.', 404, 'Not Found' )
+  (: later - what to do when a view is not available or maybe another exception
+     try find another view and render it, if not 
+     then just render error saying
+     how do we separate this exception from others, and prevent infinite loops?
+     next, not today :) } ;
 
 declare function mvc:sequence-to-map( $sequence ) {
  seq:sequence-to-map( $sequence ) } ;
@@ -162,15 +173,18 @@ declare function mvc:document-get( $path ) { u:document-get($path) } ;
 
 declare function mvc:log( $msg ) { mvc:log( $msg, "info" ) };
 declare function mvc:log($msg, $level) {
-  let $l := for $e in $msg return mvc:q("DXC-MVC => $1", ($e))
+  let $l := for $e in $msg return fn:concat("DXC-MVC => ", $e)
   return xdmp:log( $l, $level ) };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ render ~~ :)
+declare function mvc:render( $resource, $view ) { mvc:render( $resource, $view, () ) } ;
+
 declare function mvc:render( $resource, $view, $args ) {
   mvc:render( $resource, $view, $args, 200, 'OK', 'default' ) } ;
 
 declare function mvc:render( $resource, 
     $view, $args, $http-code, $http-msg, $template ) {
+try {
   let $content-type    := mvc:negotiate-content-type()
     let $_ := xdmp:set-response-content-type( $content-type )
     let $_ := xdmp:set-response-code( $http-code, $http-msg )
@@ -182,19 +196,31 @@ declare function mvc:render( $resource,
     let $view-path     := mvc:view-path( $resource, $view, $ext )
     let $template-path := mvc:template-path( $template, $ext )
     let $sections      := mvc:view-map( $view-path, $args )
-    return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) };
+    return xdmp:invoke( $template-path, (xs:QName("sections"), $sections ) ) 
+} catch ( $e ) { mvc:best-available-view() } };
 
 (:~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ errors ~~ :)
-declare function mvc:raise-http-error( $e ) {
-  (: fix later should be 404 if function undef, else 501 :)
-  mvc:raise-404( $e ) };
+declare function mvc:raise-error-from-exception( $e ) {
+  mvc:raise-error-from-exception( $e, $default-error-id ) } ;
 
-declare function mvc:raise-404( $e ) { 
-  mvc:raise-error( $e, 404, "Not Found" ) };
-declare function mvc:raise-501( $e ) { 
-  mvc:raise-error( $e, 501, "Application Error" ) };
+declare function mvc:raise-error-from-exception( $e, $error-id ) {
+  mvc:raise-error-from-exception( $e, $e//error:message/fn:string(), $error-id ) } ;
 
-declare function mvc:raise-error( $e, $code, $http-msg ) { 
-  let $message := fn:string(($e//*:message) [1])
-  let $_ := xdmp:log(xdmp:quote($e))
-  return (xdmp:set-response-code($code, "Not Found" ), $message) };
+declare function mvc:raise-error-from-exception( $e, $message, $error-id ) {
+  mvc:log( xdmp:quote( $e ) ),
+  if ( $e//error:code = 'XDMP-UNDFUN' )
+  then mvc:raise-error( $message, 404, 'Not Found' )
+  else mvc:raise-error( $message, 500, 'Internal Server Error' ) } ;
+
+declare function mvc:raise-error( $message, $http-code, $http-msg ) {
+  mvc:raise-error( $message, $http-code, $http-msg, $default-error-id ) };
+
+declare function mvc:raise-error( $message, $http-code, $http-msg, $error-id ) {
+  let $content-type    := mvc:negotiate-content-type()
+    let $_ := xdmp:set-response-content-type( $content-type )
+    let $_ := xdmp:set-response-code( $http-code, $http-msg )
+    let $_ := xdmp:add-response-header( "Date", date:now() )
+    return 
+      if ( $content-type = "application/xml" )
+      then <error id="{$error-id}">{$message}</error>
+      else fn:concat('{"error":"',$error-id,'","reason":"',$message,'"}') } ;
