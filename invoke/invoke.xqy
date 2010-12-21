@@ -51,4 +51,4 @@ try          {
                       then mvc:function( "database" )
                       else mvc:function( "default" )
     return xdmp:apply( $f ) }
-catch ( $e ) {  mvc:raise-501( $e ) }
+catch ( $e ) {  mvc:raise-error-from-exception( $e ) }
