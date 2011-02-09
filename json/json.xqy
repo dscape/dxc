@@ -24,11 +24,11 @@ xquery version "1.0-ml" ;
 module namespace json = "http://ns.dscape.org/2010/dxc/json" ;
 
 import module
-  namespace xml = "http://ns.dscape.org/2010/dxc/xml"
+  namespace x = "http://ns.dscape.org/2010/dxc/xml"
   at "../xml/xml.xqy";
 import module 
   namespace jasons_json="http://marklogic.com/json" 
   at "/MarkLogic/appservices/utils/json.xqy";
 
 declare function json:serialize( $xml ) {
-  jasons_json:serialize( xml:strip-namespaces( $xml ) ) } ;
+  jasons_json:serialize( x:strip-namespaces( $xml ) ) } ;
