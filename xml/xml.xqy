@@ -28,7 +28,6 @@ declare function x:change-element-ns( $e, $ns) {
           { $e/@*, $e/node() } } ;
 
 declare function x:strip-namespaces( $e ) {
-  element { QName((), local-name( $e )} {
-    for $x in $e/( @*,node() )
-    return
-      if ($c instance of element()) then x:strip-namespaces($c) else $c } } ;
+  element { QName((), local-name( $e )) } 
+    { for $x in $e/( @*,node() )
+      return if ($c instance of element()) then x:strip-namespaces($c) else $c } };
