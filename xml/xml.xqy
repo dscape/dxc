@@ -24,10 +24,10 @@ xquery version "1.0-ml" ;
 module namespace x = "http://ns.dscape.org/2010/dxc/xml" ;
 
 declare function x:change-element-ns( $e, $ns) {
-  element { QName( $ns, local-name( $e ) ) }
+  element { fn:QName( $ns, fn:local-name( $e ) ) }
           { $e/@*, $e/node() } } ;
 
 declare function x:strip-namespaces( $e ) {
-  element { QName((), local-name( $e )) } 
+  element { fn:QName((), fn:local-name( $e )) } 
     { for $x in $e/( @*,node() )
       return if ($c instance of element()) then x:strip-namespaces($c) else $c } };
