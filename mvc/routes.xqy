@@ -29,40 +29,44 @@ declare namespace s  = "http://www.w3.org/2009/xpath-functions/analyze-string" ;
 import module
   namespace mvc = "http://ns.dscape.org/2010/dxc/mvc"
   at "mvc.xqy";
-import module
-  namespace c = "http://ns.dscape.org/2010/dxc/cache"
-  at "../cache/cache.xqy";
+declare namespace c = "http://ns.dscape.org/2010/dxc/cache" ;
+
+declare function r:kvpair( $k, $v ) {
+  <c:kvp key="{ $k }" regexp="{r:generate-regular-expression($k)}" value="{ $v }"/> };
 
 declare function r:resource($node) {
   let $r     := $node/@name
+  return ( 
+    for $include in $node/rc:include
+      let $action := fn:data( $include/@action )
+      let $verbs  := fn:tokenize($include/@methods, ',')
+      for $verb in $verbs
+        let $k := fn:concat($verb, " /", $r,"/:id/", $action)
+        let $v := mvc:controller-action-path( $r, fn:concat($verb, "-", $action) )
+        return r:kvpair( $k, $v ),
     for $verb in mvc:supported-verbs()
       let $k := fn:concat( $verb, " /", $r, "/:id" )
       let $v := mvc:controller-action-path( $r, $verb )
-    return c:kvpair( $k, $v ),
-  let $r         := $node/@name
-    for $action in fn:data( $node/r:include/@action )
-      let $k := fn:concat("GET /", $r,"/:id/", $action)
-      let $v := mvc:controller-action-path( $r, $action )
-    return c:kvpair( $k, $v ) } ;
+      return r:kvpair( $k, $v ) ) } ;
 
 declare function r:match( $node ) { 
   let $k := fn:concat( "GET ", $node/@path )
     return if ( $node/rc:to )
            then let $to := fn:tokenize( fn:normalize-space( $node/rc:to ), "#" )
                   let $v := mvc:controller-action-path( $to [1], $to [2] )
-                  return c:kvpair( $k, $v )
+                  return r:kvpair( $k, $v )
            else if ( $node/rc:redirect-to ) 
-                then c:kvpair( $k,
+                then r:kvpair( $k,
                        fn:concat( mvc:invoke-path(), 
                          "?_action=redirect&amp;_url=",
                        xdmp:url-encode(
                          fn:normalize-space( $node/rc:redirect-to ) ) ) )
-                else c:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
+                else r:kvpair( $k, fn:concat( mvc:invoke-path(), "?_" ) ) } ;
 
 declare function r:root($node) {
   let $ra   := fn:tokenize ( fn:normalize-space( fn:string($node) ), "#" ) 
     let $file := mvc:controller-action-path( $ra [1], $ra [2] )
-    return c:kvpair("GET /", $file) } ;
+    return r:kvpair("GET /", $file) } ;
 
 declare function r:head( $node)   { r:verb( $node, 'HEAD'   ) };
 declare function r:put( $node)    { r:verb( $node, 'PUT'    ) };
@@ -73,7 +77,7 @@ declare function r:verb( $node, $verb ) {
   let $k := fn:concat( $verb, ' ', $node/@path )
     let $to := fn:tokenize( fn:normalize-space( $node ), "#" )
     let $v := mvc:controller-action-path( $to [1], $to [2] )
-      return c:kvpair( $k, $v ) } ;
+      return r:kvpair( $k, $v ) } ;
 
 declare function r:transform( $node ) {
   typeswitch ( $node )
@@ -87,8 +91,8 @@ declare function r:transform( $node ) {
     default                     return () } ;
 
 declare function r:generate-regular-expression($node) {
-  let $t := fn:replace( fn:normalize-space($node), "/:id", "/?([\\w|\\-|_]+)?" )
-  return fn:concat(fn:replace( $t , ":([\w|\-|_]+)", "([\\w|\\-|_]+)" ), 
+  let $t := fn:replace( fn:normalize-space($node), "/:id", "/?([\\w|\\-|_|\\.]+)?" )
+  return fn:concat(fn:replace( $t , ":([\w|\-|_]+)", "([\\w|\\-|_|\\.]+)" ), 
     if(fn:tokenize($t, " ")[2]="/") then "" else "(/)?") };
 
 declare function r:extract-labels($node) {
@@ -100,18 +104,22 @@ declare function r:routes( $routes-cfg ) {
   </c:cache> } ;
 
 declare function r:selected-route( $routes-cfg ) {
-let $route  := xdmp:get-request-path()
-  let $verb := xdmp:get-request-method()
+  r:selected-route( $routes-cfg, 
+    xdmp:get-request-url(), 
+    xdmp:get-request-method() ) };
+
+declare function r:selected-route( $routes-cfg, $url, $verb ) {
+  let $tokens := fn:tokenize( $url, '\?' )
+  let $route  := $tokens [1]
+  let $args   := $tokens [2]
   let $req := fn:string-join( ( $verb, $route), " ")
   return
     let $cache := r:routes( $routes-cfg )
-      let $selected := $cache //c:kvp [ fn:matches( $req, fn:concat( 
-        r:generate-regular-expression(@key), "$" ) ) ] [1]
+      let $selected := $cache //c:kvp [ fn:matches( $req, @regexp ) ] [1]
       return 
         if ($selected)
         then let $route     := $selected/@key
                let $file    := $selected/@value
-               let $args    := fn:tokenize(xdmp:get-request-url(), "\?")[2]
                let $regexp  := r:generate-regular-expression( $route )
                let $labels  := r:extract-labels( $route )
                let $matches := fn:analyze-string( $req, $regexp ) 
